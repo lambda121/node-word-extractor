@@ -33,7 +33,7 @@ var _ = require('underscore');
 var es = require('event-stream');
 
 function Header() {
-};
+}
 
 Header.ole_id = new Buffer( 'D0CF11E0A1B11AE1', 'hex' );
 
@@ -186,7 +186,7 @@ DirectoryTree.prototype._getChildIds = function( storageEntry ) {
          childIds.push( visitEntry.right );
          visit( self._entries[visitEntry.right] );
       }
-   };
+   }
 
    if ( storageEntry.storageDirId > -1 ) {
       childIds.push( storageEntry.storageDirId );
@@ -200,7 +200,7 @@ DirectoryTree.prototype._getChildIds = function( storageEntry ) {
 function Storage( doc, dirEntry ) {
    this._doc = doc;
    this._dirEntry = dirEntry;
-};
+}
 
 Storage.prototype.storage = function( storageName ) {
    return new Storage( this._doc, this._dirEntry.storages[ storageName ] );
@@ -240,7 +240,7 @@ Storage.prototype.stream = function( streamName ) {
          bytes -= buffer.length;
          stream.emit('data', buffer);
          callback();
-      };
+      }
 
       if ( shortStream ) {
          doc._readShortSector( secIds[i], sectorCallback );
@@ -261,7 +261,7 @@ function OleCompoundDoc( filename ) {
 
    this._filename = filename;
    this._skipBytes = 0;
-};
+}
 util.inherits(OleCompoundDoc, EventEmitter);
 
 OleCompoundDoc.prototype.read = function() {
@@ -303,6 +303,7 @@ OleCompoundDoc.prototype._read = function() {
 
 OleCompoundDoc.prototype._openFile = function( callback ) {
    var self = this;
+   // eslint-disable-next-line no-octal
    fs.open( this._filename, 'r', 0666, function(err, fd) {
       if( err ) {
          self.emit('err', err);
@@ -317,7 +318,7 @@ OleCompoundDoc.prototype._openFile = function( callback ) {
 OleCompoundDoc.prototype._readCustomHeader = function(callback) {
    var self = this;
    var buffer = new Buffer(this._skipBytes);
-   fs.read( self._fd, buffer, 0, this._skipBytes, 0, function(err, bytesRead, buffer) {
+   fs.read( self._fd, buffer, 0, this._skipBytes, 0, function(err, _bytesRead, buffer) {
       if(err) {
          self.emit('err', err);
          return;
@@ -333,7 +334,7 @@ OleCompoundDoc.prototype._readCustomHeader = function(callback) {
 OleCompoundDoc.prototype._readHeader = function(callback) {
    var self = this;
    var buffer = new Buffer(512);
-   fs.read( this._fd, buffer, 0, 512, 0 + this._skipBytes, function(err, bytesRead, buffer) {
+   fs.read( this._fd, buffer, 0, 512, 0 + this._skipBytes, function(err, _bytesRead, buffer) {
       if( err ) {
          self.emit('err', err);
          return;
@@ -361,7 +362,6 @@ OleCompoundDoc.prototype._readMSAT = function(callback) {
       return;
    }
 
-   var buffer = new Buffer( header.secSize );
    var currMSATIndex = 109;
    var i = 0;
    var secId = header.MSATSecId;
@@ -417,7 +417,7 @@ OleCompoundDoc.prototype._readSectors = function(secIds, callback) {
       function(whilstCallback) {
          var bufferOffset = i * header.secSize;
          var fileOffset = self._getFileOffsetForSec( secIds[i] );
-         fs.read( self._fd, buffer, bufferOffset, header.secSize, fileOffset, function(err, bytesRead, buffer) {
+         fs.read( self._fd, buffer, bufferOffset, header.secSize, fileOffset, function(err) {
             if ( err ) {
                self.emit('err', err);
                return;
@@ -453,7 +453,7 @@ OleCompoundDoc.prototype._readShortSectors = function(secIds, callback) {
       function(whilstCallback) {
          var bufferOffset = i * header.shortSecSize;
          var fileOffset = self._getFileOffsetForShortSec( secIds[i] );
-         fs.read( self._fd, buffer, bufferOffset, header.shortSecSize, fileOffset, function(err, bytesRead, buffer) {
+         fs.read( self._fd, buffer, bufferOffset, header.shortSecSize, fileOffset, function(err) {
             if ( err ) {
                self.emit('err', err);
                return;

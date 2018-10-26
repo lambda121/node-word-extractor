@@ -2,10 +2,9 @@
   "name": "word-extractor",
   "version": "0.1.4",
   "description": "Node.js package to read Word .doc files",
-  "main": "lib/word.js",
+  "main": "src/word.js",
   "scripts": {
-    "build": "coffee -b -o lib src",
-    "test": "mocha --sort --recursive --compilers coffee:coffee-script/register ./test"
+    "test": "mocha --sort --recursive ./test"
   },
   "repository": {
     "type": "git",
@@ -23,7 +22,7 @@
   "devDependencies": {
     "chai": "^1.10.0",
     "chai-as-promised": "^4.1.1",
-    "coffee-script": "^1.8.0",
+    "eslint": "^5.8.0",
     "mocha": "^2.2.5"
   },
   "dependencies": {
@@ -34,5 +33,34 @@
     "xmldom": "^0.1.27",
     "xpath": "0.0.24",
     "yauzl": "^2.8.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "es6": true,
+      "node": true,
+      "browser": true,
+      "mocha": true
+    },
+    "extends": [
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 8
+    },
+    "rules": {
+      "semi": [
+        2,
+        "always"
+      ],
+      "no-unused-vars": [
+        "error",
+        {
+          "vars": "all",
+          "args": "all",
+          "ignoreRestSiblings": false,
+          "argsIgnorePattern": "^_"
+        }
+      ]
+    }
   }
 }
