@@ -9,7 +9,6 @@ const oleDoc = require('../src/ole-doc').OleCompoundDoc;
 
 const testWordFile = file =>
   describe(`Word file ${file}`, function() {
-
     it('can be opened correctly', function(done) {
       const filename = path.resolve(__dirname, `data/${file}`);
       const doc = new oleDoc(filename);
@@ -30,16 +29,17 @@ const testWordFile = file =>
         return stream.on('end', function() {
           const buffer = Buffer.concat(chunks);
           const magicNumber = buffer.readUInt16LE(0);
-          expect(magicNumber.toString(16)).to.equal("a5ec");
+          expect(magicNumber.toString(16)).to.equal('a5ec');
           return done();
         });
       });
       return doc.read();
     });
-  })
-;
+  });
 
-const files = fs.readdirSync(path.resolve(__dirname, "data"));
+const files = fs.readdirSync(path.resolve(__dirname, 'data'));
 files.filter(function(file) {
-  if (/\.doc$/i.test(file)) { return testWordFile(file); }
+  if (/\.doc$/i.test(file)) {
+    return testWordFile(file);
+  }
 });
