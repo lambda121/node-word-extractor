@@ -251,11 +251,6 @@ Storage.prototype.stream = function( streamName ) {
    });
 };
 
-//function Stream( doc, dirEntry ) {
-//   this._doc = doc;
-//   this._dirEntry = dirEntry;
-//};
-
 function OleCompoundDoc( filename ) {
    EventEmitter.call(this);
 
