@@ -2,243 +2,243 @@
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * DS205: Consider reworking code to avoid use of IIFEs
- * DS206: Consider reworking classes to avoid initClass
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-const { Buffer } = require('buffer');
 
-const oleDoc = require('./ole-doc').OleCompoundDoc;
-const Promise = require('bluebird');
+//---------//
+// Imports //
+//---------//
 
-const Document = require('./document');
+const { Buffer } = require('buffer')
 
-var WordExtractor = (function() {
-  let streamBuffer = undefined;
-  let extractDocument = undefined;
-  let documentStream = undefined;
-  let writeBookmarks = undefined;
-  let writePieces = undefined;
-  let extractWordDocument = undefined;
-  let getPiece = undefined;
-  let addText = undefined;
-  let addUnicodeText = undefined;
-  WordExtractor = class WordExtractor {
-    static initClass() {
-      //# Given an OLE stream, returns all the data in a buffer,
-      //# as a promise.
-      streamBuffer = stream =>
-        new Promise(function(resolve, reject) {
-          const chunks = [];
-          stream.on('data', chunk => chunks.push(chunk));
-          stream.on('error', error => reject(error));
-          return stream.on('end', () => resolve(Buffer.concat(chunks)));
-        });
+const oleDoc = require('./ole-doc').OleCompoundDoc
+const Promise = require('bluebird')
 
-      extractDocument = filename =>
-        new Promise(function(resolve, reject) {
-          const document = new oleDoc(filename);
-          document.on('err', error => {
-            return reject(error);
-          });
-          document.on('ready', () => {
-            return resolve(document);
-          });
-          return document.read();
-        });
+const Document = require('./document')
 
-      documentStream = (document, stream) =>
-        Promise.resolve(document.stream(stream));
+//
+//------//
+// Main //
+//------//
 
-      writeBookmarks = function(buffer, tableBuffer, result) {
-        const fcSttbfBkmk = buffer.readUInt32LE(0x0142);
-        const lcbSttbfBkmk = buffer.readUInt32LE(0x0146);
-        const fcPlcfBkf = buffer.readUInt32LE(0x014a);
-        const lcbPlcfBkf = buffer.readUInt32LE(0x014e);
-        const fcPlcfBkl = buffer.readUInt32LE(0x0152);
-        const lcbPlcfBkl = buffer.readUInt32LE(0x0156);
+class WordExtractor {
+  extract(filename) {
+    return extractDocument(filename).then(document =>
+      documentStream(document, 'WordDocument')
+        .then(stream => streamBuffer(stream))
+        .then(buffer => extractWordDocument(document, buffer))
+    )
+  }
+}
 
-        if (lcbSttbfBkmk === 0) {
-          return;
-        }
+//
+//------------------//
+// Helper Functions //
+//------------------//
 
-        const sttbfBkmk = tableBuffer.slice(
-          fcSttbfBkmk,
-          fcSttbfBkmk + lcbSttbfBkmk
-        );
-        const plcfBkf = tableBuffer.slice(fcPlcfBkf, fcPlcfBkf + lcbPlcfBkf);
-        const plcfBkl = tableBuffer.slice(fcPlcfBkl, fcPlcfBkl + lcbPlcfBkl);
+//# Given an OLE stream, returns all the data in a buffer,
+//# as a promise.
+function streamBuffer(stream) {
+  return new Promise(function(resolve, reject) {
+    const chunks = []
+    stream.on('data', chunk => chunks.push(chunk))
+    stream.on('error', error => reject(error))
+    return stream.on('end', () => resolve(Buffer.concat(chunks)))
+  })
+}
 
-        const fcExtend = sttbfBkmk.readUInt16LE(0);
-        sttbfBkmk.readUInt16LE(2);
-        sttbfBkmk.readUInt16LE(4);
+function extractDocument(filename) {
+  return new Promise(function(resolve, reject) {
+    const document = new oleDoc(filename)
+    document.on('err', error => {
+      return reject(error)
+    })
+    document.on('ready', () => {
+      return resolve(document)
+    })
+    return document.read()
+  })
+}
 
-        if (fcExtend !== 0xffff) {
-          throw new Error(
-            'Internal error: unexpected single-byte bookmark data'
-          );
-        }
+function documentStream(document, stream) {
+  return Promise.resolve(document.stream(stream))
+}
 
-        let offset = 6;
-        const index = 0;
+function writeBookmarks(buffer, tableBuffer, result) {
+  const fcSttbfBkmk = buffer.readUInt32LE(0x0142)
+  const lcbSttbfBkmk = buffer.readUInt32LE(0x0146)
+  const fcPlcfBkf = buffer.readUInt32LE(0x014a)
+  const lcbPlcfBkf = buffer.readUInt32LE(0x014e)
+  const fcPlcfBkl = buffer.readUInt32LE(0x0152)
+  const lcbPlcfBkl = buffer.readUInt32LE(0x0156)
 
-        return (() => {
-          const result1 = [];
-          while (offset < lcbSttbfBkmk) {
-            let length = sttbfBkmk.readUInt16LE(offset);
-            length = length * 2;
-            const segment = sttbfBkmk.slice(offset + 2, offset + 2 + length);
-            const cpStart = plcfBkf.readUInt32LE(index * 4);
-            const cpEnd = plcfBkl.readUInt32LE(index * 4);
-            result.bookmarks[segment] = { start: cpStart, end: cpEnd };
-            result1.push((offset = offset + length + 2));
-          }
-          return result1;
-        })();
-      };
+  if (lcbSttbfBkmk === 0) {
+    return
+  }
 
-      writePieces = function(buffer, tableBuffer, result) {
-        let flag;
-        let pos = buffer.readUInt32LE(0x01a2);
+  const sttbfBkmk = tableBuffer.slice(fcSttbfBkmk, fcSttbfBkmk + lcbSttbfBkmk)
+  const plcfBkf = tableBuffer.slice(fcPlcfBkf, fcPlcfBkf + lcbPlcfBkf)
+  const plcfBkl = tableBuffer.slice(fcPlcfBkl, fcPlcfBkl + lcbPlcfBkl)
 
-        while (tableBuffer.readUInt8(pos) === 1) {
-          pos = pos + 1;
-          const skip = tableBuffer.readUInt16LE(pos);
-          pos = pos + 2 + skip;
-        }
+  const fcExtend = sttbfBkmk.readUInt16LE(0)
+  sttbfBkmk.readUInt16LE(2)
+  sttbfBkmk.readUInt16LE(4)
 
-        flag = tableBuffer.readUInt8(pos);
-        pos = pos + 1;
-        if (flag !== 2) {
-          throw new Error('Internal error: ccorrupted Word file');
-        }
+  if (fcExtend !== 0xffff) {
+    throw new Error('Internal error: unexpected single-byte bookmark data')
+  }
 
-        const pieceTableSize = tableBuffer.readUInt32LE(pos);
-        pos = pos + 4;
+  let offset = 6
+  const index = 0
 
-        const pieces = (pieceTableSize - 4) / 12;
-        let start = 0;
-        let lastPosition = 0;
+  return (() => {
+    const result1 = []
+    while (offset < lcbSttbfBkmk) {
+      let length = sttbfBkmk.readUInt16LE(offset)
+      length = length * 2
+      const segment = sttbfBkmk.slice(offset + 2, offset + 2 + length)
+      const cpStart = plcfBkf.readUInt32LE(index * 4)
+      const cpEnd = plcfBkl.readUInt32LE(index * 4)
+      result.bookmarks[segment] = { start: cpStart, end: cpEnd }
+      result1.push((offset = offset + length + 2))
+    }
+    return result1
+  })()
+}
 
-        return (() => {
-          const result1 = [];
-          for (let x = 0, end = pieces - 1; x <= end; x++) {
-            const offset = pos + (pieces + 1) * 4 + x * 8 + 2;
-            let filePos = tableBuffer.readUInt32LE(offset);
-            let unicode = false;
-            if ((filePos & 0x40000000) === 0) {
-              unicode = true;
-            } else {
-              filePos = filePos & ~0x40000000;
-              filePos = Math.floor(filePos / 2);
-            }
-            const lStart = tableBuffer.readUInt32LE(pos + x * 4);
-            const lEnd = tableBuffer.readUInt32LE(pos + (x + 1) * 4);
-            const totLength = lEnd - lStart;
+function writePieces(buffer, tableBuffer, result) {
+  let pos = buffer.readUInt32LE(0x01a2)
 
-            const piece = {
-              start,
-              totLength,
-              filePos,
-              unicode,
-            };
+  while (tableBuffer.readUInt8(pos) === 1) {
+    pos = pos + 1
+    const skip = tableBuffer.readUInt16LE(pos)
+    pos = pos + 2 + skip
+  }
 
-            getPiece(buffer, piece);
-            piece.length = piece.text.length;
-            piece.position = lastPosition;
-            piece.endPosition = lastPosition + piece.length;
-            result.pieces.push(piece);
+  const flag = tableBuffer.readUInt8(pos)
+  pos = pos + 1
+  if (flag !== 2) {
+    throw new Error('Internal error: ccorrupted Word file')
+  }
 
-            start = start + (unicode ? Math.floor(totLength / 2) : totLength);
-            result1.push((lastPosition = lastPosition + piece.length));
-          }
-          return result1;
-        })();
-      };
+  const pieceTableSize = tableBuffer.readUInt32LE(pos)
+  pos = pos + 4
 
-      extractWordDocument = (document, buffer) =>
-        new Promise(function(resolve, reject) {
-          const magic = buffer.readUInt16LE(0);
-          if (magic !== 0xa5ec) {
-            // eslint-disable-next-line no-console
-            console.log(buffer);
-            return reject(
-              new Error(
-                `This does not seem to be a Word document: Invalid magic number: ${magic.toString(
-                  16
-                )}`
-              )
-            );
-          }
+  const pieces = (pieceTableSize - 4) / 12
+  let start = 0
+  let lastPosition = 0
 
-          const flags = buffer.readUInt16LE(0xa);
+  return (() => {
+    const result1 = []
+    for (let x = 0, end = pieces - 1; x <= end; x++) {
+      const offset = pos + (pieces + 1) * 4 + x * 8 + 2
+      let filePos = tableBuffer.readUInt32LE(offset)
+      let unicode = false
+      if ((filePos & 0x40000000) === 0) {
+        unicode = true
+      } else {
+        filePos = filePos & ~0x40000000
+        filePos = Math.floor(filePos / 2)
+      }
+      const lStart = tableBuffer.readUInt32LE(pos + x * 4)
+      const lEnd = tableBuffer.readUInt32LE(pos + (x + 1) * 4)
+      const totLength = lEnd - lStart
 
-          const table = (flags & 0x0200) !== 0 ? '1Table' : '0Table';
+      const piece = {
+        start,
+        totLength,
+        filePos,
+        unicode,
+      }
 
-          return documentStream(document, table)
-            .then(stream => streamBuffer(stream))
-            .then(function(tableBuffer) {
-              const result = new Document();
-              result.boundaries.fcMin = buffer.readUInt32LE(0x0018);
-              result.boundaries.ccpText = buffer.readUInt32LE(0x004c);
-              result.boundaries.ccpFtn = buffer.readUInt32LE(0x0050);
-              result.boundaries.ccpHdd = buffer.readUInt32LE(0x0054);
-              result.boundaries.ccpAtn = buffer.readUInt32LE(0x005c);
+      getPiece(buffer, piece)
+      piece.length = piece.text.length
+      piece.position = lastPosition
+      piece.endPosition = lastPosition + piece.length
+      result.pieces.push(piece)
 
-              writeBookmarks(buffer, tableBuffer, result);
-              writePieces(buffer, tableBuffer, result);
+      start = start + (unicode ? Math.floor(totLength / 2) : totLength)
+      result1.push((lastPosition = lastPosition + piece.length))
+    }
+    return result1
+  })()
+}
 
-              return resolve(result);
-            })
-            .catch(error => reject(error));
-        });
-
-      getPiece = function(buffer, piece) {
-        const pstart = piece.start;
-        const ptotLength = piece.totLength;
-        const pfilePos = piece.filePos;
-        const punicode = piece.unicode;
-
-        const pend = pstart + ptotLength;
-        const textStart = pfilePos;
-        const textEnd = textStart + (pend - pstart);
-
-        if (punicode) {
-          return (piece.text = addUnicodeText(buffer, textStart, textEnd));
-        } else {
-          return (piece.text = addText(buffer, textStart, textEnd));
-        }
-      };
-
-      addText = function(buffer, textStart, textEnd) {
-        const slice = buffer.slice(textStart, textEnd);
-        return slice.toString('binary');
-      };
-
-      addUnicodeText = function(buffer, textStart, textEnd) {
-        const slice = buffer.slice(textStart, 2 * textEnd - textStart);
-        const string = slice.toString('ucs2');
-
-        // See the conversion table for FcCompressed structures. Note that these
-        // should not affect positions, as these are characters now, not bytes
-        // for i in [0..string.length]
-        //   if
-
-        return string;
-      };
+function extractWordDocument(document, buffer) {
+  return new Promise(function(resolve, reject) {
+    const magic = buffer.readUInt16LE(0)
+    if (magic !== 0xa5ec) {
+      // eslint-disable-next-line no-console
+      console.log(buffer)
+      return reject(
+        new Error(
+          `This does not seem to be a Word document: Invalid magic number: ${magic.toString(
+            16
+          )}`
+        )
+      )
     }
 
-    constructor() {}
+    const flags = buffer.readUInt16LE(0xa)
 
-    extract(filename) {
-      return extractDocument(filename).then(document =>
-        documentStream(document, 'WordDocument')
-          .then(stream => streamBuffer(stream))
-          .then(buffer => extractWordDocument(document, buffer))
-      );
-    }
-  };
-  WordExtractor.initClass();
-  return WordExtractor;
-})();
+    const table = (flags & 0x0200) !== 0 ? '1Table' : '0Table'
 
-module.exports = WordExtractor;
+    return documentStream(document, table)
+      .then(stream => streamBuffer(stream))
+      .then(function(tableBuffer) {
+        const result = new Document()
+        result.boundaries.fcMin = buffer.readUInt32LE(0x0018)
+        result.boundaries.ccpText = buffer.readUInt32LE(0x004c)
+        result.boundaries.ccpFtn = buffer.readUInt32LE(0x0050)
+        result.boundaries.ccpHdd = buffer.readUInt32LE(0x0054)
+        result.boundaries.ccpAtn = buffer.readUInt32LE(0x005c)
+
+        writeBookmarks(buffer, tableBuffer, result)
+        writePieces(buffer, tableBuffer, result)
+
+        return resolve(result)
+      })
+      .catch(error => reject(error))
+  })
+}
+
+function getPiece(buffer, piece) {
+  const pstart = piece.start
+  const ptotLength = piece.totLength
+  const pfilePos = piece.filePos
+  const punicode = piece.unicode
+
+  const pend = pstart + ptotLength
+  const textStart = pfilePos
+  const textEnd = textStart + (pend - pstart)
+
+  if (punicode) {
+    return (piece.text = addUnicodeText(buffer, textStart, textEnd))
+  } else {
+    return (piece.text = addText(buffer, textStart, textEnd))
+  }
+}
+
+function addText(buffer, textStart, textEnd) {
+  const slice = buffer.slice(textStart, textEnd)
+  return slice.toString('binary')
+}
+
+function addUnicodeText(buffer, textStart, textEnd) {
+  const slice = buffer.slice(textStart, 2 * textEnd - textStart)
+  const string = slice.toString('ucs2')
+
+  // See the conversion table for FcCompressed structures. Note that these
+  // should not affect positions, as these are characters now, not bytes
+  // for i in [0..string.length]
+  //   if
+
+  return string
+}
+
+//
+//---------//
+// Exports //
+//---------//
+
+module.exports = WordExtractor

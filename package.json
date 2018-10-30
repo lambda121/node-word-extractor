@@ -38,7 +38,8 @@
   },
   "prettier": {
     "singleQuote": true,
-    "trailingComma": "es5"
+    "trailingComma": "es5",
+    "semi": false
   },
   "eslintConfig": {
     "env": {
@@ -54,9 +55,12 @@
       "ecmaVersion": 8
     },
     "rules": {
+      "no-var": "error",
+      "prefer-const": "error",
+      "no-confusing-arrow": "error",
       "semi": [
-        2,
-        "always"
+        "error",
+        "never"
       ],
       "no-unused-vars": [
         "error",
