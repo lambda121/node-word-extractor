@@ -2,7 +2,7 @@
   "name": "word-extractor",
   "version": "0.1.4",
   "description": "Node.js package to read Word .doc files",
-  "main": "src/word.js",
+  "main": "src/extract.js",
   "scripts": {
     "lint": "eslint src test",
     "test": "mocha --sort --recursive ./test"
@@ -29,9 +29,10 @@
   "dependencies": {
     "async": "^1.5.2",
     "bluebird": "^2.6.0",
+    "dedent": "^0.7.0",
     "event-stream": "^3.3.2",
+    "lodash": "^4.17.11",
     "prettier": "^1.14.3",
-    "underscore": "^1.8.3",
     "xmldom": "^0.1.27",
     "xpath": "0.0.24",
     "yauzl": "^2.8.0"

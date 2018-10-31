@@ -1,26 +1,39 @@
-const chai = require('chai')
-const { expect } = chai
+//---------//
+// Imports //
+//---------//
 
+const fs = require('fs')
+const { expect } = require('chai')
 const path = require('path')
 
-const WordExtractor = require('../src/word')
+const extract = require('../src/extract')
 
-describe('Word file test02.doc', function() {
-  const extractor = new WordExtractor()
+//
+//------//
+// Main //
+//------//
 
-  return it('should match the expected body', function(done) {
-    const extract = extractor.extract(
-      path.resolve(__dirname, 'data/test02.doc')
-    )
-    expect(extract).to.be.fulfilled
-    return extract.then(function(result) {
-      const body = result.getBody()
-      expect(body).to.match(new RegExp('My name is Ryan'))
-      expect(body).to.match(
-        new RegExp('create several FKPs for testing purposes')
-      )
-      expect(body).to.match(new RegExp('dsadasdasdasd'))
-      return done()
-    })
+describe('Word file test02.doc', () => {
+  const filePath = path.resolve(__dirname, 'data/test02.doc'),
+    buffer = fs.readFileSync(filePath)
+
+  it('fromFile - should match the expected body', () => {
+    return extract.fromFile(filePath).then(testDoc)
+  })
+
+  it('fromBuffer - should match the expected body', () => {
+    return extract.fromBuffer(buffer).then(testDoc)
   })
 })
+
+//
+//------------------//
+// Helper Functions //
+//------------------//
+
+function testDoc(doc) {
+  const body = doc.getBody()
+  expect(body).to.match(new RegExp('My name is Ryan'))
+  expect(body).to.match(new RegExp('create several FKPs for testing purposes'))
+  expect(body).to.match(new RegExp('dsadasdasdasd'))
+}
