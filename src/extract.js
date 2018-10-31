@@ -11,7 +11,6 @@
 const { Buffer } = require('buffer')
 
 const createOleCompoundDoc = require('./create-ole-compound-doc')
-const Promise = require('bluebird')
 
 const Document = require('./document')
 

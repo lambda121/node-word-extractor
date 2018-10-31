@@ -1,3 +1,12 @@
+### Forked from morungos/node-word-extractor
+
+**What's different?**  
+[I needed buffer support](https://github.com/morungos/node-word-extractor/issues/11)
+but didn't want to deal with coffeescript so I modified the repo a bit. The
+main public change is the module is now an object with two methods `fromFile`
+and `fromBuffer`. I also removed 'bluebird' so the returned promises
+are native.
+
 ### word-extractor
 
 Read data from a Word document using node.js
@@ -15,24 +24,28 @@ Word file, without leaving the node.js environment.
 #### How do I install this module?
 
 ```bash=
-yarn add word-extractor
+yarn add @gmr-fms/word-extractor
 
 # Or using npm...
-npm install word-extractor
+npm install @gmr-fms/word-extractor
 ```
 
 #### How do I use this module?
 
-    const extract = require("word-extractor");
-    extract.fromFile("file.doc").then(doc => {
-      console.log(doc.getBody());
-    });
+```
+const extract = require('word-extractor');
+extract.fromFile('file.doc').then(doc => {
+  console.log(doc.getBody());
+});
+```
 
-The object returned from the `extract()` method is a promise that resolves to a document object, which then provides several views onto different parts of the document contents.
+The object returned from the `extract()` method is a promise that resolves to a
+document object, which then provides several views onto different parts of the
+document contents.
 
 #### Methods
 
-`extract#fromFile(filePath) => Promise<Document>`
+`extract#fromFile(filePath) => Promise<Document>`  
 `extract#fromBuffer(buf) => Promise<Document>`
 
 `Document#getBody()`
