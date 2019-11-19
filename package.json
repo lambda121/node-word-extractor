@@ -1,6 +1,6 @@
 {
   "name": "@gmr-fms/word-extractor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Node.js package to read Word .doc files",
   "main": "src/extract.js",
   "files": [
