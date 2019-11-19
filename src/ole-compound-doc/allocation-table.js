@@ -34,11 +34,17 @@ class AllocationTable {
   }
 
   getSecIdChain(startSecId) {
-    let secId = startSecId
-    const secIds = []
-    while (secId != AllocationTable.SecIdEndOfChain) {
-      secIds.push(secId)
-      secId = this._table[secId]
+    let secId = startSecId;
+    const secIds = [];
+
+    while (secId > AllocationTable.SecIdFree) {
+      secIds.push(secId);
+
+      const secIdPrior = secId;
+      secId = this._table[secId];
+
+      if (secId === secIdPrior)
+        break;
     }
 
     return secIds
