@@ -189,7 +189,7 @@ function extractWordDocument(aDocument, buffer) {
 
   const table = (flags & 0x0200) !== 0 ? '1Table' : '0Table'
 
-  return streamBuffer(anOleDoc.stream(Object.keys(anOleDoc._rootStorage._dirEntry.streams).filter(k => k.indexOf(table) === 0))).then(tableBuffer => {
+  return streamBuffer(aDocument.stream(Object.keys(aDocument._rootStorage._dirEntry.streams).filter(k => k.indexOf(table) === 0))).then(tableBuffer => {
     const result = new Document()
 
     Object.assign(result.boundaries, {
