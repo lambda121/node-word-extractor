@@ -1,5 +1,5 @@
 {
-  "name": "@gmr-fms/word-extractor",
+  "name": "@lambda121/word-extractor",
   "version": "0.3.0",
   "description": "Node.js package to read Word .doc files",
   "main": "src/extract.js",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gmr-fms/node-word-extractor.git"
+    "url": "https://github.com/lambda121/node-word-extractor.git"
   },
   "keywords": [
     "word"
@@ -20,7 +20,7 @@
   "author": "Stuart Watt <stuart@morungos.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/gmr-fms/node-word-extractor/issues"
+    "url": "https://github.com/lambda121/node-word-extractor/issues"
   },
   "homepage": "https://github.com/morungos/node-word-extractor",
   "devDependencies": {
